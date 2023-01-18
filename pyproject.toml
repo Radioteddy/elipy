@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "elipy"
+version = "0.1.0"
+description = "Post-processing tool for Abinit >= 9.8.1 aiming to calculate energy-resolved Eliashberg function"
+authors = ["Fedor Akhmetov <f.akhmetov@utwente.nl>"]
+license = "GPL-2.0-or-later"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.23.5"
+scipy = "^1.9.3"
+numba = "^0.56.4"
+netCDF4 = "^1.5.7"
+mpi4py = "^3.1.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
