@@ -1,9 +1,9 @@
 from numpy import linspace
-from constants import *
+from .constants import *
 
 class Grid:
     def __init__(self, g_min: float, g_max: float, smear: float,
-                 npoints: int, unit: str = 'eV'):
+                 npoints: int, unit: str = 'Ha'):
         self.unit = unit
         self.npoints = npoints
         if self.unit == 'Ha':

@@ -11,16 +11,16 @@ unit_conversion = {
     'meV': eV_Ha*1e-3,
 }
 
-# small addition to highest phonon eigenvalue for phonon grid
-ph_delta = 10 * eV_Ha # 10 meV
-
 # egird defaults in Ha units
 default_emin = -0.4
 default_emax = 0.4
-default_esmear = 0.01
+default_esmear = 0.01 # Ha
 default_epoints = 50
 
 # phgrid defaults in meV
 # default min and max are taken from eigenfrequencies file
-default_phsmear = 0.1
+default_phsmear = 0.1 # meV
 default_phpoints = 100 # higher resolution over phonon frequencies
+
+# small addition to highest phonon eigenvalue for phonon grid
+ph_delta = 10 * eV_Ha # 10 meV

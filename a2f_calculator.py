@@ -1,8 +1,8 @@
 import numpy as np
 from numba import njit #, prange
-from grid import Grid
-from kpt_utils import *
-from mpi import master
+from .grid import Grid
+from .kpt_utils import *
+from .mpi import master
 
 @njit()
 def gaussian(x: float, x0: float, sigma: float) -> np.float_:
@@ -38,6 +38,7 @@ def get_a2f_chunk(gkq_chunk: np.ndarray, kpts: np.ndarray, qpts: np.ndarray,
     a2f_temp = np.empty((epsilon.npoints, epsilon_pr.npoints, omega.npoints))
     Nq, Nk, Nnu, Nb, Nbpr = gkq_chunk.shape[:-1] # dimensions of summation
     for iq in range(Nq):
+        print(f'qpt {iq+1}/{Nq}: {qpts[iq][0]:.8e} {qpts[iq][1]:.8e} {qpts[iq][2]:.8e}')
         ikq, _ = get_kq2k(kpts, qpts[iq])
         for ik in range(Nk):
             for inu in range(Nnu):
