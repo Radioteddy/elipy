@@ -7,7 +7,7 @@ from .files_handling import *
 from .constants import *
 from .messages import *
 from .grid import Grid
-from .a2f_calculator import get_a2f_chunk
+from .a2f_calculator import get_a2f_chunk, get_qpts_subset
 
 from .mpi import MPI, comm, size, rank, master_only, mpi_watch, master
 
@@ -60,6 +60,7 @@ class Elisahberg:
     @mpi_watch
     def broadcast_dims(self):
         # Broadcast all dimensions from master to other cpu-s
+        
         if master:
             dim_arr = np.array(self.gkq_vals.shape[:-1], dtype=int)
         else:
@@ -70,6 +71,7 @@ class Elisahberg:
     @mpi_watch
     def broadcast_kqpoints(self):
         # Broadcast k- and q-points arrays
+        
         if not master:
             self.g_kpts = np.empty((self.nkpt, 3), dtype=np.float64)
             self.g_qpts = np.empty((self.nqpt, 3), dtype=np.float64)
@@ -79,6 +81,7 @@ class Elisahberg:
     @mpi_watch
     def broadcast_eigvals(self):
         # Broadcast electron and phonon eigenvalues
+        
         if not master:
             self.e_eigvals = np.empty((self.nkpt, self.nband), dtype=np.float64)
             self.ph_eigvals = np.empty((self.nqpt, self.nbranch), dtype=np.float64)
@@ -113,6 +116,7 @@ class Elisahberg:
     @mpi_watch
     def scatter_gkq_vals(self):
         # scatter gkq values to cpu-s over nkpt dimension
+        
         # TODO: think about scattering over nqpt as well
         if master: 
             gkq_flatten = self.gkq_vals.flatten()
@@ -140,11 +144,14 @@ class Elisahberg:
             kpts_chunk = self.g_kpts[self.__displ[rank]:self.__displ[rank+1],:]
         else:
             kpts_chunk = self.g_kpts[self.__displ[rank]:,:]
-        # calculate a2f values for given chunck
+
+        # calculate a2f values for given chunck        
         a2f_chunk = get_a2f_chunk(self.gkq_chunk, kpts_chunk, self.g_qpts, 
                                   self.e_eigvals, self.ph_eigvals,
-                                  self.egrid, self.e1grid, self.phgrid)
-        comm.Reduce([a2f_chunk, MPI.DOUBLE], [self.a2f_vals, MPI.DOUBLE], op=MPI.SUM, root=0)       
+                                  self.egrid.grid, self.e1grid.grid, self.phgrid.grid,
+                                  self.egrid.smear, self.e1grid.smear, self.phgrid.smear, 
+                                  self.egrid.npoints, self.e1grid.npoints, self.phgrid.npoints)
+        # comm.Reduce([a2f_chunk, MPI.DOUBLE], [self.a2f_vals, MPI.DOUBLE], op=MPI.SUM, root=0)       
             
     @master_only
     def write_netcdf(self):
@@ -173,9 +180,9 @@ class Elisahberg:
         print_computation()
         self.sum_chunks()
         
-        self.write_netcdf()
-        print_save_status(self.out_file)
+        # self.write_netcdf()
+        # print_save_status(self.out_file)
         
         if master:
             elapsed = time() - start
-        print_complete(elapsed)
+            print_complete(elapsed)
