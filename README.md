@@ -24,16 +24,17 @@ The current implemetation of supports Gaussian representation of delta-functions
 
 The actual versions of required packages are stored in pyproject.toml file.
 
-### Installing
+### Installation
 
-* How/where to download your program
-* Any modifications needed to be made to files/folders
+```
+git clone 
+```
 
 ### Executing program
 
 * Use mpirun, mpiexec, srun,... for program execution
 ```
-mpiexec -n X python filename.py > log
+mpiexec -n X python filename.py > log 2> err
 ```
 
 ## Authors
@@ -44,10 +45,6 @@ Fedor Akhmetov (https://github.com/Radioteddy)
 
 * 0.1.0
     * Initial Release
-
-## License
-
-This project is licensed under the GPU GPL v2 License. For more details see the LICENSE file.
 
 ## Acknowledgments
 * [ElectronPhononCoupling](https://github.com/GkAntonius/ElectronPhononCoupling)

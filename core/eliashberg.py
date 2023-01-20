@@ -1,6 +1,7 @@
-import numpy as np
-from pathlib import Path 
+from pathlib import Path
 from time import time
+
+import numpy as np
 
 from .files_handling import *
 from .constants import *
@@ -154,9 +155,10 @@ class Elisahberg:
         
     def compute_a2f(self):
         # gather all previous methods together into united workflow
-        # and add status messages to stdout
+        # and add status messages to log file
         if master:
-            start = time()
+        # we don't need to log everything 
+            start = time()           
         print_header()
 
         self.read_data()

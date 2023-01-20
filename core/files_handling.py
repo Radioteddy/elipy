@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import numpy as np
 import netCDF4 as nc
+
 from .grid import Grid
-from pathlib import Path
 
 def check_in_path(path: str or Path, file_type: str) -> Path:
     # pathlib.Path representation of input file
@@ -67,7 +69,7 @@ def get_gkq_values(gkq_path: str) -> tuple([np.ndarray, np.ndarray, np.ndarray])
             gkq_vals = gkq_vals.reshape(gkq_vals.shape[:-1]) 
             kpoints = np.ma.getdata(file.variables['gstore_kbz'][:])
             qpoints = np.ma.getdata(file.variables['gstore_qbz'][:])
-            fermi_energy = np.ma.getdata(file.variables['fermi_energy'][:])[0]
+            fermi_energy = np.float64(np.ma.getdata(file.variables['fermi_energy'][:]))
             assert (gkq_vals.shape[0], gkq_vals.shape[1]) == (qpoints.shape[0], kpoints.shape[0]), "only k(bz) q(bz) gkq file is currently supported"
         else:
             raise ValueError('Spin-dependent gkq is not supported yet')
