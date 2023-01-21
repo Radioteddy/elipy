@@ -27,43 +27,65 @@ def get_eew_term(eps_k: np.float_, eps_kq: np.float_, w_q: np.float_,
                             * gaussian(eps_arr[i], eps_k, sigma_eps) )
     return a2f_eew
 
-def get_qpts_subset(kpts: np.ndarray, qpts: np.ndarray):
-    iqpts = []
-    ikqpts = OrderedDict()
-    for iq, qpt in enumerate(qpts):
-        ikq_g0 = get_kq2k(kpts, qpt)
-        if ikq_g0:
-            ikq, _ = ikq_g0
-            iqpts.append[iq]
-            ikqpts[iq] = ikq
-    
-def get_a2f_chunk(gkq_chunk: np.ndarray, kpts: np.ndarray, qpts: np.ndarray,
-                  eps_eig: np.ndarray, ph_eig: np.ndarray, 
-                  e_range: np.ndarray, epr_range: np.ndarray, w_range: np.ndarray,
-                  e_smear: np.float_, epr_smear: np.float_, w_smear: np.float_,
-                  e_points: int, epr_points: int, w_points: int) -> np.ndarray:
-    a2f_vals = np.zeros((e_points, epr_points, w_points))
-    a2f_temp = np.empty((e_points, epr_points, w_points))
-    Nk, Nq, Nnu, Nb, Nbpr = gkq_chunk.shape # dimensions of summation
-
-    iqpts, ikqpts = get_qpts_subset(kpts, qpts)
-    # take only nonzero values of gkq_chunk
-    where_nonzero = np.nonzero(gkq_chunk)
-    nonzero_indices = np.array([[ik, iq, inu, ib, ibp] for ik, iq, inu, ib, ibp in zip(*where_nonzero) if iq in iqpts], dtype=int)
-    for item in nonzero_indices:
-        iq, ik, inu, ib, ibp = item
-        ikq = ikqpts[iq]
+@njit()
+def calculate_chunk(gkq_chunk: np.ndarray, eps_eig: np.ndarray, ph_eig: np.ndarray, 
+                    nonzero_dims: tuple, ikqpts: list,
+                    egrid: np.ndarray, e1grid: np.ndarray, phgrid: np.ndarray,
+                    esmear: np.float_, e1smear: np.float_, phsmear: np.float_,
+                    epoints: int, e1points: int, phpoints: int) -> np.ndarray:
+    # countainers for a2f values
+    a2f_vals = np.zeros((egrid.npoints, e1grid.npoints, phgrid.npoints))
+    a2f_temp = np.empty((egrid.npoints, e1grid.npoints, phgrid.npoints))    
+    nk, nq, nnu, nb, nbp = nonzero_dims
+    for i in range(len(nk)):
+        ik, iq, inu, ib, ibp = nk[i], nq[i], nnu[i], nb[i], nbp[i]
+        ikq = ikqpts[ik][0]
         w_q = ph_eig[iq, inu]
         eps_k = eps_eig[ik,ib]
         eps_kq = eps_eig[ikq,ibp]
         g_kq = gkq_chunk[ik,iq,inu,ib,ibp]
         get_eew_term(eps_k,eps_kq,w_q,
-                e_smear, epr_smear, w_smear,
-                e_range, epr_range, w_range,
-                e_points, epr_points, w_points,
+                esmear, e1smear, phsmear,
+                egrid, e1grid, phgrid,
+                epoints, e1points, phpoints,
                 a2f_temp)
         a2f_vals += a2f_temp * g_kq
     return a2f_vals
+
+    
+def get_a2f_chunk(gkq_chunk: np.ndarray, kpts: np.ndarray, kpts_chunk: np.ndarray, qpts: np.ndarray,
+                  eps_eig: np.ndarray, ph_eig: np.ndarray, 
+                  egrid: Grid, e1grid: Grid, phgrid: Grid) -> np.ndarray:
+    # mapping of BZ: for every q get k+q -> k 
+    ikqpts = [get_kq2k(kpts, kpts_chunk, qpt) for qpt in qpts]
+    # take only nonzero values of gkq_chunk
+    where_nonzero = np.nonzero(gkq_chunk)
+    a2f_vals = calculate_chunk(gkq_chunk, eps_eig, ph_eig,
+                               where_nonzero, ikqpts, 
+                               egrid.grid, e1grid.grid, phgrid.grid,
+                               egrid.smear, e1grid.smear, phgrid.smear,
+                               egrid.npoints, e1grid.npoints, phgrid.npoints)
+    return a2f_vals
+
+    # Nk, Nq, Nnu, Nb, Nbpr = gkq_chunk.shape # dimensions of summation
+    # a2f_vals = np.zeros((egrid.npoints, e1grid.npoints, phgrid.npoints))
+    # a2f_temp = np.empty((egrid.npoints, e1grid.npoints, phgrid.npoints))
+
+    # nk, nq, nnu, nb, nbp = where_nonzero
+    # for i in range(len(nk)):
+    #     ik, iq, inu, ib, ibp = nk[i], nq[i], nnu[i], nb[i], nbp[i]
+    #     ikq = ikqpts[ik][0]
+    #     w_q = ph_eig[iq, inu]
+    #     eps_k = eps_eig[ik,ib]
+    #     eps_kq = eps_eig[ikq,ibp]
+    #     g_kq = gkq_chunk[ik,iq,inu,ib,ibp]
+    #     get_eew_term(eps_k,eps_kq,w_q,
+    #             egrid.smear, e1grid.smear, phgrid.smear,
+    #             egrid.grid, e1grid.grid, phgrid.grid,
+    #             egrid.npoints, e1grid.npoints, phgrid.npoints,
+    #             a2f_temp)
+    #     a2f_vals += a2f_temp * g_kq
+
 
 
     # for iq in range(Nq):

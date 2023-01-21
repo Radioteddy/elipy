@@ -148,10 +148,8 @@ class Elisahberg:
         # calculate a2f values for given chunck        
         a2f_chunk = get_a2f_chunk(self.gkq_chunk, kpts_chunk, self.g_qpts, 
                                   self.e_eigvals, self.ph_eigvals,
-                                  self.egrid.grid, self.e1grid.grid, self.phgrid.grid,
-                                  self.egrid.smear, self.e1grid.smear, self.phgrid.smear, 
-                                  self.egrid.npoints, self.e1grid.npoints, self.phgrid.npoints)
-        # comm.Reduce([a2f_chunk, MPI.DOUBLE], [self.a2f_vals, MPI.DOUBLE], op=MPI.SUM, root=0)       
+                                  self.egrid, self.e1grid, self.phgrid)
+        comm.Reduce([a2f_chunk, MPI.DOUBLE], [self.a2f_vals, MPI.DOUBLE], op=MPI.SUM, root=0)       
             
     @master_only
     def write_netcdf(self):
@@ -177,11 +175,11 @@ class Elisahberg:
         self.scatter_gkq_vals()
         print_variables(self.egrid, self.e1grid, self.phgrid)
         
-        print_computation()
+        # print_computation()
         self.sum_chunks()
         
-        # self.write_netcdf()
-        # print_save_status(self.out_file)
+        self.write_netcdf()
+        print_save_status(self.out_file)
         
         if master:
             elapsed = time() - start
