@@ -78,9 +78,12 @@ def get_gkq_values(gkq_path: str) -> tuple([np.ndarray, np.ndarray, np.ndarray])
         raise ValueError('incorrect netCDF file!')
     return gkq_vals, kpoints, qpoints, fermi_energy
 
-def store_a2f_values(out_path: str or Path, egrid: Grid, e1grid: Grid, phgrid: Grid, a2f_vals: np.ndarray) -> None:
+def store_a2f_values(out_path: str or Path, efermi: np.float_,
+                     egrid: Grid, e1grid: Grid, phgrid: Grid, a2f_vals: np.ndarray) -> None:
     out_path = check_out_path(out_path)
-    ncout = nc.Dataset(out_path,'w') 
+    ncout = nc.Dataset(out_path,'w')
+    efvar = ncout.createVariable('Fermi_energy', 'float64') 
+    efvar[0] = efermi
     ncout.createDimension('number_of_epoints', egrid.npoints)
     ncout.createDimension('number_of_e1points',e1grid.npoints)
     ncout.createDimension('number_of_frequencies', phgrid.npoints)

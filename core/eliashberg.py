@@ -7,7 +7,7 @@ from .files_handling import *
 from .constants import *
 from .messages import *
 from .grid import Grid
-from .a2f_calculator import get_a2f_chunk, get_qpts_subset
+from .a2f_calculator import get_a2f_chunk
 
 from .mpi import MPI, comm, size, rank, master_only, mpi_watch, master
 
@@ -18,7 +18,7 @@ class Elisahberg:
                  e1window: list = None, e1smear: float = None,
                  e1points: int = None, e1units: str = None,
                  phwindow: list = None, phsmear: float = default_phsmear,
-                 phpoints: int = default_phpoints, phunits: str = 'meV',
+                 phpoints: int = default_phpoints, phunits: str = 'Ha',
                  out_file: str or Path = Path.cwd()/'eliashberg_eew.nc') -> None:
         self.gkq_file = gkq_file
         self.eig_file = eig_file
@@ -66,7 +66,7 @@ class Elisahberg:
         else:
             dim_arr = np.empty(4, dtype=int)
         comm.Bcast([dim_arr, MPI.INT])
-        self.nkpt, self.nqpt, self.nbranch, self.nband = dim_arr[0], dim_arr[1], dim_arr[2], dim_arr[3] 
+        self.nkpt, self.nqpt, self.nbranch, self.nband = dim_arr
     
     @mpi_watch
     def broadcast_kqpoints(self):
@@ -91,8 +91,9 @@ class Elisahberg:
         phmin = np.amin(self.ph_eigvals)
         phmin = 0 if phmin >= 0 else phmin - ph_delta
         if not self.phgrid:
+            
             self.phgrid = Grid(phmin, np.amax(self.ph_eigvals) + ph_delta,
-                               self.__phsmear, self.__phpoints, self.__phunits)
+                               self.__phsmear*unit_conversion[self.__phunits], self.__phpoints, 'Ha')
 
 
     # for some reason, scattering of n-dimensional array doesn't work
@@ -146,7 +147,7 @@ class Elisahberg:
             kpts_chunk = self.g_kpts[self.__displ[rank]:,:]
 
         # calculate a2f values for given chunck        
-        a2f_chunk = get_a2f_chunk(self.gkq_chunk, kpts_chunk, self.g_qpts, 
+        a2f_chunk = get_a2f_chunk(self.gkq_chunk, self.g_kpts, kpts_chunk, self.g_qpts, 
                                   self.e_eigvals, self.ph_eigvals,
                                   self.egrid, self.e1grid, self.phgrid)
         comm.Reduce([a2f_chunk, MPI.DOUBLE], [self.a2f_vals, MPI.DOUBLE], op=MPI.SUM, root=0)       
@@ -156,7 +157,8 @@ class Elisahberg:
         # multiply Eliashberg function to (almost) correct prefactor
         self.a2f_vals = self.a2f_vals * (2/self.nkpt/self.nqpt) # division to g(Ef) is up to user!
         # save computed Eliashberg function to netCDF file
-        store_a2f_values(self.out_file, self.egrid, self.e1grid, self.phgrid, self.a2f_vals)
+        store_a2f_values(self.out_file, self.efermi, 
+                         self.egrid, self.e1grid, self.phgrid, self.a2f_vals)
         
     def compute_a2f(self):
         # gather all previous methods together into united workflow

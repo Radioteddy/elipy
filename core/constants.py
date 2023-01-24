@@ -19,8 +19,8 @@ default_epoints = 50
 
 # phgrid defaults in meV
 # default min and max are taken from eigenfrequencies file
-default_phsmear = 0.1 # meV
+default_phsmear = 2e-5 # ~0.544 meV
 default_phpoints = 100 # higher resolution over phonon frequencies
 
 # small addition to highest phonon eigenvalue for phonon grid
-ph_delta = 10 * eV_Ha # 10 meV
+ph_delta = eV_Ha * 1e-2 # 10 meV

@@ -1,9 +1,10 @@
 import numpy as np
-from numba import njit #, prange
-from collections import OrderedDict
+from numba import njit
+from numba.typed import List
+
 from .grid import Grid
 from .kpt_utils import *
-from .mpi import master
+# from .mpi import master
 
 @njit()
 def gaussian(x: float, x0: float, sigma: float) -> np.float_:
@@ -34,17 +35,17 @@ def calculate_chunk(gkq_chunk: np.ndarray, eps_eig: np.ndarray, ph_eig: np.ndarr
                     esmear: np.float_, e1smear: np.float_, phsmear: np.float_,
                     epoints: int, e1points: int, phpoints: int) -> np.ndarray:
     # countainers for a2f values
-    a2f_vals = np.zeros((egrid.npoints, e1grid.npoints, phgrid.npoints))
-    a2f_temp = np.empty((egrid.npoints, e1grid.npoints, phgrid.npoints))    
+    a2f_vals = np.zeros((epoints, e1points, phpoints))
+    a2f_temp = np.empty((epoints, e1points, phpoints))    
     nk, nq, nnu, nb, nbp = nonzero_dims
     for i in range(len(nk)):
         ik, iq, inu, ib, ibp = nk[i], nq[i], nnu[i], nb[i], nbp[i]
-        ikq = ikqpts[ik][0]
+        ikq = ikqpts[iq][ik][0]
         w_q = ph_eig[iq, inu]
         eps_k = eps_eig[ik,ib]
         eps_kq = eps_eig[ikq,ibp]
         g_kq = gkq_chunk[ik,iq,inu,ib,ibp]
-        get_eew_term(eps_k,eps_kq,w_q,
+        get_eew_term(eps_k, eps_kq, w_q,
                 esmear, e1smear, phsmear,
                 egrid, e1grid, phgrid,
                 epoints, e1points, phpoints,
@@ -57,7 +58,8 @@ def get_a2f_chunk(gkq_chunk: np.ndarray, kpts: np.ndarray, kpts_chunk: np.ndarra
                   eps_eig: np.ndarray, ph_eig: np.ndarray, 
                   egrid: Grid, e1grid: Grid, phgrid: Grid) -> np.ndarray:
     # mapping of BZ: for every q get k+q -> k 
-    ikqpts = [get_kq2k(kpts, kpts_chunk, qpt) for qpt in qpts]
+    ikqpts = List()
+    [ikqpts.append(get_kq2k(kpts, kpts_chunk, qpt)) for qpt in qpts]
     # take only nonzero values of gkq_chunk
     where_nonzero = np.nonzero(gkq_chunk)
     a2f_vals = calculate_chunk(gkq_chunk, eps_eig, ph_eig,
