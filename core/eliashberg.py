@@ -90,8 +90,7 @@ class Elisahberg:
         # if phonon grid is not set, do it now    
         phmin = np.amin(self.ph_eigvals)
         phmin = 0 if phmin >= 0 else phmin - ph_delta
-        if not self.phgrid:
-            
+        if not self.phgrid:           
             self.phgrid = Grid(phmin, np.amax(self.ph_eigvals) + ph_delta,
                                self.__phsmear*unit_conversion[self.__phunits], self.__phpoints, 'Ha')
 
