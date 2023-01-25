@@ -1,6 +1,6 @@
-# Elipy (not working yet!)
+# Elipy
 
-Post-processing tool for ABINIT >= 9.8.1 aiming to calculate energy-resolved Eliashberg function
+Post-processing tool for ABINIT >= 9.8.1 aiming for calculation of energy-resolved Eliashberg function
 
 ## Description
 
