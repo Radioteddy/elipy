@@ -12,7 +12,9 @@ $$
 
 The above-written definition does not include electron density of states at Fermi level. One needs to divide $\alpha^2 F$ over $N_F$ to get physically meaningful results. 
 
-The current implemetation of supports Gaussian representation of delta-functions. Project uses mpi4py for many-core parallelization and Numba for acceleration of procedures dealing with iteration over numpy arrays.
+The current implemetation supports Gaussian representation of delta-functions. Project uses mpi4py for many-core parallelization and Numba for acceleration of procedures dealing with iteration over numpy arrays.
+
+Elipy is insipired by ElectronPhononCoupling and Abipy projects, and uses some of their utility functions. Apologies for code copy-pasting, it allows to keep dependency list as short as possible.  
 
 ## Getting Started
 
@@ -28,7 +30,7 @@ The actual versions of required packages are stored in pyproject.toml file.
 
 ### Installation
 
-Installation based on Poetry package and dependency manager: https://python-poetry.org
+Installation based on [Poetry](https://python-poetry.org) package and dependency manager.
 ```
 git clone https://github.com/Radioteddy/elipy.git
 cd elipy
@@ -44,10 +46,12 @@ mpiexec -n X python filename.py > log 2> err
 
 ## Authors
 
-Fedor Akhmetov (https://github.com/Radioteddy)
+[Fedor Akhmetov](https://github.com/Radioteddy)
 
 ## Version History
 
+* 0.1.5
+    * Working Release
 * 0.1.0
     * Initial Release
 

@@ -12,14 +12,64 @@ from .a2f_calculator import get_a2f_chunk
 from .mpi import MPI, comm, size, rank, master_only, mpi_watch, master
 
 class Elisahberg:
-    def __init__(self, gkq_file: str, eig_file: str, pheig_file: str,
+    """ contains methods for Eliashberg function a2F(e,e',w) calculation
+    """
+    def __init__(self, gkq_file: str|Path, eig_file: str|Path, pheig_file: str|Path,
                  ewindow: list = [default_emin, default_emax], esmear: float = default_esmear, 
                  epoints: int = default_epoints, eunits: str = 'Ha',
                  e1window: list = None, e1smear: float = None,
                  e1points: int = None, e1units: str = None,
                  phwindow: list = None, phsmear: float = default_phsmear,
                  phpoints: int = default_phpoints, phunits: str = 'Ha',
-                 out_file: str or Path = Path.cwd()/'eliashberg_eew.nc') -> None:
+                 out_file: str|Path = Path.cwd()/'eliashberg_eew.nc') -> None:
+        """__init__ parameters for Eliashberg class
+
+        Parameters
+        ----------
+        gkq_file : str | Path
+            Path to netCDF4 file with |g|^2 eph matrix elements
+        eig_file : str | Path
+            Path to netCDF4 file with electron eigenvalues
+        pheig_file : str | Path
+            Path to ascii file with phonon eigenvalues
+        ewindow : list, optional
+            window for electron energies,
+            by default [default_emin, default_emax]
+        esmear : float, optional
+            smearing of electron delta function,
+            by default default_esmear
+        epoints : int, optional
+            number of points in electron energy grid,
+            by default default_epoints
+        eunits : str, optional
+            electron energy unit, by default 'Ha'
+        e1window : list, optional
+            same as `ewindow` but for e',
+            by default None (taken from ewindow)
+        e1smear : float, optional
+            same as `esmear` but for e',
+            by default None (taken from esmear)
+        e1points : int, optional
+            same as `epoints` but for e',
+            by default None (taken from epoints)
+        e1units : str, optional
+            same as `eunits` but for e',
+            by default None (taken from eunits)
+        phwindow : list, optional
+            window for phonon frequencies,
+            by default None (taken from phonon eigenvalues)
+        phsmear : float, optional
+            smearing of phonon delta function,
+            by default default_phsmear
+        phpoints : int, optional
+            number of points in phonon frequency grid,
+            by default default_phpoints
+        phunits : str, optional
+            phonon frequency unit, by default 'Ha'
+        out_file : str | Path, optional
+            path to netCDF4 file for output storage,
+            by default Path.cwd()/'eliashberg_eew.nc'
+        """
         self.gkq_file = gkq_file
         self.eig_file = eig_file
         self.pheig_file = pheig_file
@@ -43,6 +93,8 @@ class Elisahberg:
     
     @master_only        
     def read_data(self):
+        """read_data reads input files and check their consistency
+        """        
         self.e_eigvals, e_kpts = get_electron_eigenvalues_kpoints(self.eig_file)
         self.ph_eigvals = get_phonon_eigenvalues(self.pheig_file)
         gkq_vals, self.g_kpts, self.g_qpts, self.efermi = get_gkq_values(self.gkq_file)
@@ -59,6 +111,8 @@ class Elisahberg:
 
     @mpi_watch
     def broadcast_dims(self):
+        """broadcast_dims broadcasts dimensions of all arrays to cpus
+        """        
         # Broadcast all dimensions from master to other cpu-s
         
         if master:
@@ -70,8 +124,8 @@ class Elisahberg:
     
     @mpi_watch
     def broadcast_kqpoints(self):
-        # Broadcast k- and q-points arrays
-        
+        """broadcast_kqpoints broadcasts k- and q-point arrays to cpus
+        """       
         if not master:
             self.g_kpts = np.empty((self.nkpt, 3), dtype=np.float64)
             self.g_qpts = np.empty((self.nqpt, 3), dtype=np.float64)
@@ -80,8 +134,8 @@ class Elisahberg:
                     
     @mpi_watch
     def broadcast_eigvals(self):
-        # Broadcast electron and phonon eigenvalues
-        
+        """broadcast_eigvals broadcasts electron and phonon eigenvalues to cpus
+        """
         if not master:
             self.e_eigvals = np.empty((self.nkpt, self.nband), dtype=np.float64)
             self.ph_eigvals = np.empty((self.nqpt, self.nbranch), dtype=np.float64)
@@ -115,8 +169,8 @@ class Elisahberg:
     # here array is flatten to 1d and back to nd, but it may brake everything at some point
     @mpi_watch
     def scatter_gkq_vals(self):
-        # scatter gkq values to cpu-s over nkpt dimension
-        
+        """scatter_gkq_vals distributes |g|^2 values over cpus
+        """
         # TODO: think about scattering over nqpt as well
         if master: 
             gkq_flatten = self.gkq_vals.flatten()
@@ -135,6 +189,8 @@ class Elisahberg:
         
     @mpi_watch
     def sum_chunks(self):
+        """sum_chunks calculates a2f values for distributed |g|^2 chunk and sums them
+        """
         # allocate array summing chunks from all cpu-s
         self.a2f_vals = np.empty((self.egrid.npoints,
                                 self.e1grid.npoints,
@@ -153,6 +209,8 @@ class Elisahberg:
             
     @master_only
     def write_netcdf(self):
+        """write_netcdf writes a2f to netCDF4 file
+        """
         # multiply Eliashberg function to (almost) correct prefactor
         self.a2f_vals = self.a2f_vals * (2/self.nkpt/self.nqpt) # division to g(Ef) is up to user!
         # save computed Eliashberg function to netCDF file
@@ -160,13 +218,14 @@ class Elisahberg:
                          self.egrid, self.e1grid, self.phgrid, self.a2f_vals)
         
     def compute_a2f(self):
-        # gather all previous methods together into united workflow
+        """compute_a2f gathers all previous methods together into united workflow
+        """
         # and add status messages to log file
         if master:
         # we don't need to log everything 
             start = time()           
         print_header()
-
+        print_mpi_info(self.nkpt//size)
         self.read_data()
         print_read_status(self.eig_file, self.pheig_file, self.gkq_file)
         

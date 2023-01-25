@@ -2,17 +2,25 @@ from datetime import datetime, timedelta
 # import importlib.metadata
 from pathlib import Path
 from .grid import Grid
-from .mpi import master_only
+from .mpi import master_only, size
 
 @master_only
 def print_header():
     # __version__ = importlib.metadata.version("elipy")
-    __version__ = "0.1.0"
+    __version__ = "0.1.5"
     header_message = f"""
 elipy v{__version__} -- post-processing tool for ABINIT EPH package
 Started at: {datetime.now()}
     """
-    print(header_message)
+    print(header_message, flush=True)
+
+@master_only
+def print_mpi_info(num_kpoints: int) -> None:
+    mpi_message = f"""
+    Number of cpu-s used is: {size}
+    K-point parallelization: avg. {num_kpoints} k-points per cpu
+    """
+    print(mpi_message, flush=True)
 
 @master_only
 def print_read_status(e_file: Path, w_file: Path, g_file: Path) -> None:
@@ -21,7 +29,7 @@ Electron energy values: {str(e_file)}
 Phonon frequency values: {str(w_file)}
 Electron-phonon matrix elements: {str(g_file)}
     """
-    print(read_status_message)
+    print(read_status_message, flush=True)
    
 @master_only   
 def print_variables(egrid: Grid, e1grid: Grid, phgrid: Grid) -> None:
@@ -45,7 +53,7 @@ ph_grid:
     ph_smearing  {phgrid.smear} 
     ph_npoints    {phgrid.npoints}
     """
-    print(variables_message)
+    print(variables_message, flush=True)
 
 @master_only
 def print_computation() -> None:
@@ -54,14 +62,14 @@ def print_computation() -> None:
                                 Computation progress
 -------------------------------------------------------------------------------------
     """
-    print(computation_message)
+    print(computation_message, flush=True)
 
 @master_only
 def print_save_status(out_file: Path) -> None:
     save_status_message = f"""
 Writing energy-resolved Eliashberg function values to netcdf file: {str(out_file)}
     """
-    print(save_status_message)
+    print(save_status_message, flush=True)
     
 @master_only    
 def print_complete(elapsed: float) -> None:
@@ -69,4 +77,4 @@ def print_complete(elapsed: float) -> None:
 Calculation completed.
 Calculation time is: {str(timedelta(seconds=elapsed))}
     """
-    print(complete_message)
+    print(complete_message, flush=True)

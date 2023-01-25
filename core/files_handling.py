@@ -5,7 +5,21 @@ import netCDF4 as nc
 
 from .grid import Grid
 
-def check_in_path(path: str or Path, file_type: str) -> Path:
+def check_in_path(path: str|Path, file_type: str = None) -> Path:
+    """check_in_path converts input file path to pathlib.Path if necessary and makes it absolute
+
+    Parameters
+    ----------
+    path : str | Path
+        file path
+    file_type : str
+        which file
+
+    Returns
+    -------
+    Path
+        absolute path to file
+    """    
     # pathlib.Path representation of input file
     if isinstance(path, Path):
         pass
@@ -20,8 +34,19 @@ def check_in_path(path: str or Path, file_type: str) -> Path:
         raise FileNotFoundError(f"Path to {file_type} file '{str(path)}' does not exist")
     return path
     
-def check_out_path(path: str or Path) -> Path:
-    # pathlib.Path representation of output file
+def check_out_path(path: str|Path) -> Path:
+    """check_out_path converts output file path to pathlib.Path if necessary and makes it absolute
+
+    Parameters
+    ----------
+    path : str | Path
+        file path
+
+    Returns
+    -------
+    Path
+        absolute path to file
+    """
     if isinstance(path, Path):
         pass
     elif isinstance(path, str):
@@ -33,40 +58,82 @@ def check_out_path(path: str or Path) -> Path:
         path.parents[0].mkdir(parents=True, exist_ok=True)
     return path
                 
-def get_electron_eigenvalues_kpoints(eigenval_path: str or Path) -> tuple([np.ndarray, np.ndarray]):
+def get_electron_eigenvalues_kpoints(eigenval_path: str|Path) -> tuple([np.ndarray, np.ndarray]):
+    """get_electron_eigenvalues_kpoints reads netCDF4 file with electron eigenvalues
+
+    Parameters
+    ----------
+    eigenval_path : str | Path
+        path to eigenvalues file
+
+    Returns
+    -------
+    (numpy.ndarray, numpy.ndarray)
+        arrays of electron eigenvalues and k-points
+    """
     eigenval_path = check_in_path(eigenval_path, 'Electron eigenvalues')
     if 'EIG' in eigenval_path.name:
         file=nc.Dataset(eigenval_path, 'r')
-        eignvalues = np.ma.getdata(file.variables['Eigenvalues'][:])[0,:,:]
+        eigenvalues = np.ma.getdata(file.variables['Eigenvalues'][:])[0,:,:]
         kpoints = np.ma.getdata(file.variables['Kptns'][:])
         file.close()
     elif ('GSTORE' in eigenval_path.name) or ('A2F' in eigenval_path.name):
         file=nc.Dataset(eigenval_path, 'r')
         # currently for spin-independent eigenvalues only
-        eignvalues = np.ma.getdata(file.variables['eigenvalues'][:])[0,:,:]
+        eigenvalues = np.ma.getdata(file.variables['eigenvalues'][:])[0,:,:]
         kpoints = np.ma.getdata(file.variables['reduced_coordinates_of_kpoints'][:])
         file.close()
     else:
         raise ValueError('incorrect netCDF file!')
-    return eignvalues, kpoints
+    return eigenvalues, kpoints
 
-def get_phonon_eigenvalues(eigenval_path: str or Path) -> tuple([np.ndarray, np.ndarray]):
+def get_phonon_eigenvalues(eigenval_path: str|Path) -> np.ndarray:
+    """get_phonon_eigenvalues reads acsii file with phonon eigenvalues
+
+    Parameters
+    ----------
+    eigenval_path : str | Path
+        path to eigenvalues file
+
+    Returns
+    -------
+    numpy.ndarray
+        array of phonon eigenvalues
+    """    
     eigenval_path = check_in_path(eigenval_path, 'Phonon eigenvalues')
     if 'PHFRQ' in eigenval_path.name:
-        eignvalues = np.loadtxt(eigenval_path, usecols=(1,2,3))
+        eigenvalues = np.loadtxt(eigenval_path, usecols=(1,2,3))
     else:
         raise ValueError('incorrect phonon modes file!')
-    return eignvalues
+    return eigenvalues
 
-def get_gkq_values(gkq_path: str) -> tuple([np.ndarray, np.ndarray, np.ndarray]):
+def get_gkq_values(gkq_path: str) -> tuple([np.ndarray, np.ndarray, np.ndarray, np.float_]):
+    """get_gkq_values reads netCDF4 file with eph matrix elements
+
+    Parameters
+    ----------
+    gkq_path : str
+        path to |g|^2 file
+
+    Returns
+    -------
+    (numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.float_)
+        arrays with |g|^2 values, k- and q-points, Fermi energy
+    """    
     gkq_path = check_in_path(gkq_path, 'EPH matrix elements')
     if 'GSTORE' in gkq_path.name:
         file = nc.Dataset(gkq_path, 'r')
         if len(file.groups) == 1:
             gkq = file.groups['gqk_spin1'].variables['gvals']
             gkq_vals = np.ma.getdata(gkq[:])
-            # we don't need last dimension since we deal with |g|^2
-            gkq_vals = gkq_vals.reshape(gkq_vals.shape[:-1]) 
+            # check if we got g instead of |g|^2 and calculate |g|^2
+            if gkq_vals.shape[-1] == 2:
+                gkq_vals_temp = np.empty(gkq_vals.shape[:-1])
+                gkq_vals_temp = gkq_vals[:,:,:,:,:,0]**2 + gkq_vals[:,:,:,:,:,1]**2
+                gkq_vals = gkq_vals_temp
+            else:
+                # since we deal with |g|^2 we don't need last dimension
+                gkq_vals = gkq_vals.reshape(gkq_vals.shape[:-1]) 
             kpoints = np.ma.getdata(file.variables['gstore_kbz'][:])
             qpoints = np.ma.getdata(file.variables['gstore_qbz'][:])
             fermi_energy = np.float64(np.ma.getdata(file.variables['fermi_energy'][:]))
@@ -78,8 +145,25 @@ def get_gkq_values(gkq_path: str) -> tuple([np.ndarray, np.ndarray, np.ndarray])
         raise ValueError('incorrect netCDF file!')
     return gkq_vals, kpoints, qpoints, fermi_energy
 
-def store_a2f_values(out_path: str or Path, efermi: np.float_,
+def store_a2f_values(out_path: str|Path, efermi: np.float_,
                      egrid: Grid, e1grid: Grid, phgrid: Grid, a2f_vals: np.ndarray) -> None:
+    """store_a2f_values saves output data no netCDF4 file
+
+    Parameters
+    ----------
+    out_path : str | Path
+        path to output file
+    efermi : np.float_
+        Fermi energy of a system
+    egrid : Grid
+        electron energy grid e
+    e1grid : Grid
+        electron energy grid e'
+    phgrid : Grid
+        phonon frequency grid w
+    a2f_vals : np.ndarray
+        a2F(e,e',w) values
+    """
     out_path = check_out_path(out_path)
     ncout = nc.Dataset(out_path,'w')
     efvar = ncout.createVariable('Fermi_energy', 'float64') 

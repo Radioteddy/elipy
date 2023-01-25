@@ -1,3 +1,4 @@
+# some useful constants
 from scipy.constants import physical_constants as pc
 
 Ha_eV = pc['hartree-electron volt relationship'][0]

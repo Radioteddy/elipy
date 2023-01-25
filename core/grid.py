@@ -2,8 +2,25 @@ from numpy import linspace
 from .constants import *
 
 class Grid:
+    """ provides linear grid for electron and phonon energies
+    """    
     def __init__(self, g_min: float, g_max: float, smear: float,
                  npoints: int, unit: str = 'Ha'):
+        """__init__ parameters of grid
+
+        Parameters
+        ----------
+        g_min : float
+            lowest grid point
+        g_max : float
+            largest grid point
+        smear : float
+            parameter for gaussian smearing
+        npoints : int
+            number of grid points
+        unit : str, optional
+           energy units, by default 'Ha'
+        """
         self.unit = unit
         self.npoints = npoints
         if self.unit == 'Ha':

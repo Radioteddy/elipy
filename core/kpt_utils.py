@@ -6,34 +6,66 @@ import numpy as np
 from numba import njit
 
 @njit()
-def is_integer(x, atol=1e-8):
-    """
-    True if all x is integer within the absolute tolerance atol.
+def is_integer(x: np.ndarray, atol: float=1e-8) -> bool:
+    """is_integer check if vector has integer coordinates within tolerance atol
+
+    Parameters
+    ----------
+    x : np.ndarray(3,)
+        input vector
+    atol : float, optional
+        tolerance, by default 1e-8
+
+    Returns
+    -------
+    bool
+        True if vector has integer coordinates, False otherwise
     """
     int_x = np.empty_like(x)
     np.round(x, 0, int_x)
-    return np.all(np.abs(int_x-x)<=(1e-8+1e-5*np.abs(x)))
+    return np.all(np.abs(int_x-x)<=(atol+1e-5*np.abs(x)))
 
 @njit()
-def issamek(k1, k2, atol=1e-8):
-    """
-    True if k1 and k2 are equal modulo a lattice vector.
+def issamek(k1: np.ndarray, k2: np.ndarray, atol: float=1e-8) -> bool:
+    """issamek checks if two k-points are equal modulo a lattice vector.
+
+    Parameters
+    ----------
+    k1 : np.ndarray(3,)
+        first k-point
+    k2 : np.ndarray(3,)
+        second k-point
+    atol : float, optional
+        tolerance, by default 1e-8
+
+    Returns
+    -------
+    bool
+        True if two k-points are the same
     """
     k1 = np.asarray(k1)
     k2 = np.asarray(k2)
     return is_integer(k1 - k2, atol=atol)
 
 @njit()
-def get_kq2k(kpts: np.ndarray, kpts_sub: np.ndarray, qpt: np.ndarray, atol_kdiff=1e-8) -> tuple([int, float]):
-    """
-    Find idx{k+q} --> idx{k}, g0
+def get_kq2k(kpts: np.ndarray, kpts_sub: np.ndarray, qpt: np.ndarray, atol_kdiff=1e-8) -> dict:
+    """get_kq2k Find idx{k+q} --> idx{k} for k-point subset
 
-    Args:
-        kpts: array of k-points in full BZ
-        kpts: array of subset k-points for which we want to find mapping
-        qpt: q-point
-        atol_kdiff: Tolerance used to compare k-points.
-
+    Parameters
+    ----------
+    kpts : np.ndarray(nk,3)
+        array of k-points in the whole BZ
+    kpts_sub : np.ndarray(nk_sub,3)
+        array of k-point subset
+    qpt : np.ndarray(3,)
+        q-point for which we map BZ
+    atol : float, optional
+        tolerance, by default 1e-8
+        
+    Returns
+    -------
+    {int: (int, np.ndarray(3,))}
+        dictionary which keys are k-point ind, values[0] is k+q ind, values[1] is G vector
     """
     k2kqg = dict()
     if np.all(np.abs(qpt) <= 1e-6):

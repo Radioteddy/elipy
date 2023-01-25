@@ -13,7 +13,8 @@ master = bool(rank == 0)
 
 @contextmanager
 def mpi_abort_if_exception():
-    """Terminate all mpi process if an exception is raised."""
+    """mpi_abort_if_exception terminates all mpi process if an exception is raised.
+    """
     try:
         yield
     except:
@@ -22,14 +23,32 @@ def mpi_abort_if_exception():
         MPI.COMM_WORLD.Abort(1)
 
 def mpi_watch(f):
-    """Decorator. Terminate all mpi process if an exception is raised."""
+    """mpi_watch is decorator. Terminates all mpi process if an exception is raised.
+
+    Parameters
+    ----------
+    f : function
+
+    Returns
+    -------
+    function
+    """
     def g(*args, **kwargs):
         with mpi_abort_if_exception():
             return f(*args, **kwargs)
     return g
 
 def master_only(f):
-    """Decorator. Let a function be executed only by master."""
+    """master_only is ecorator. Lets a function be executed only by master.
+
+    Parameters
+    ----------
+    f : function
+
+    Returns
+    -------
+    function
+    """
     def g(*args, **kwargs):
         if master:
             with mpi_abort_if_exception():
