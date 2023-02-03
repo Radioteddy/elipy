@@ -14,7 +14,7 @@ The above-written definition does not include electron density of states at Ferm
 
 The current implemetation supports Gaussian representation of delta-functions. Project uses mpi4py for many-core parallelization and Numba for acceleration of procedures dealing with iteration over numpy arrays.
 
-Elipy is insipired by ElectronPhononCoupling and Abipy projects, and uses some of their utility functions. Apologies for code copy-pasting, it allows to keep dependency list as short as possible.  
+Elipy is insipired by [ElectronPhononCoupling](https://github.com/GkAntonius/ElectronPhononCoupling) and [Abipy](https://github.com/abinit/abipy) projects, and uses some of their utility functions. Apologies for code copy-pasting, it allows to keep dependency list as short as possible.  
 
 ## Getting Started
 
@@ -41,7 +41,7 @@ poetry install
 
 * Use mpirun, mpiexec, srun,... for program execution
 ```
-mpiexec -n X python filename.py > log 2> err
+mpiexec -n X python filename.py > out 2> err
 ```
 
 ## Authors
@@ -50,6 +50,8 @@ mpiexec -n X python filename.py > log 2> err
 
 ## Version History
 
+* 0.1.6
+    * minor bugfixes and improvements
 * 0.1.5
     * Working Release
 * 0.1.0
@@ -57,4 +59,4 @@ mpiexec -n X python filename.py > log 2> err
 
 ## Acknowledgments
 * [ElectronPhononCoupling](https://github.com/GkAntonius/ElectronPhononCoupling)
-* [abipy](https://github.com/abinit/abipy)
+* [Abipy](https://github.com/abinit/abipy)

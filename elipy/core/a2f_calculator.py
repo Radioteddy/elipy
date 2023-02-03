@@ -119,14 +119,20 @@ def calculate_chunk(gkq_chunk: np.ndarray, eps_eig: np.ndarray, ph_eig: np.ndarr
     """
     # countainers for a2f values
     a2f_vals = np.zeros((epoints, e1points, phpoints))
-    a2f_temp = np.empty((epoints, e1points, phpoints))    
+    a2f_temp = np.empty((epoints, e1points, phpoints))
+    ewindow_bounds = [np.amin(egrid), np.amax(egrid)]
+    e1window_bounds = [np.amin(e1grid), np.amax(e1grid)]    
     nk, nq, nnu, nb, nbp = nonzero_dims
     for i in range(len(nk)):
         ik, iq, inu, ib, ibp = nk[i], nq[i], nnu[i], nb[i], nbp[i]
         ikq = ikqpts[iq][ik][0]
         w_q = ph_eig[iq, inu]
         eps_k = eps_eig[ik,ib]
+        if (eps_k < ewindow_bounds[0])|(eps_k > ewindow_bounds[1]):
+            continue # no need to account these values 
         eps_kq = eps_eig[ikq,ibp]
+        if (eps_k < e1window_bounds[0])|(eps_k > e1window_bounds[1]):
+            continue # no need to account these values 
         g_kq = gkq_chunk[ik,iq,inu,ib,ibp]
         get_eew_term(eps_k, eps_kq, w_q,
                 esmear, e1smear, phsmear,
@@ -137,45 +143,45 @@ def calculate_chunk(gkq_chunk: np.ndarray, eps_eig: np.ndarray, ph_eig: np.ndarr
     return a2f_vals
 
     
-def get_a2f_chunk(gkq_chunk: np.ndarray, kpts: np.ndarray, kpts_chunk: np.ndarray, qpts: np.ndarray,
-                  eps_eig: np.ndarray, ph_eig: np.ndarray, 
-                  egrid: Grid, e1grid: Grid, phgrid: Grid) -> np.ndarray:
-    """get_a2f_chunk wrapper for calculate_chunk function
+# def get_a2f_chunk(gkq_chunk: np.ndarray, kpts: np.ndarray, kpts_chunk: np.ndarray, qpts: np.ndarray,
+#                   eps_eig: np.ndarray, ph_eig: np.ndarray, 
+#                   egrid: Grid, e1grid: Grid, phgrid: Grid) -> np.ndarray:
+#     """get_a2f_chunk wrapper for calculate_chunk function
 
-    Parameters
-    ----------
-    gkq_chunk : np.ndarray
-        chunk of |g|^2 values
-    kpts : np.ndarray
-        k-points in full BZ
-    kpts_chunk : np.ndarray
-        chunk of k-points
-    qpts : np.ndarray
-        q-points in full BZ
-    eps_eig : np.ndarray
-        electron eigenvalues
-    ph_eig : np.ndarray
-        phonon eigenvalues
-    egrid : Grid
-        electron grid e
-    e1grid : Grid
-        electron grid e'
-    phgrid : Grid
-        phonon grid w
+#     Parameters
+#     ----------
+#     gkq_chunk : np.ndarray
+#         chunk of |g|^2 values
+#     kpts : np.ndarray
+#         k-points in full BZ
+#     kpts_chunk : np.ndarray
+#         chunk of k-points
+#     qpts : np.ndarray
+#         q-points in full BZ
+#     eps_eig : np.ndarray
+#         electron eigenvalues
+#     ph_eig : np.ndarray
+#         phonon eigenvalues
+#     egrid : Grid
+#         electron grid e
+#     e1grid : Grid
+#         electron grid e'
+#     phgrid : Grid
+#         phonon grid w
 
-    Returns
-    -------
-    np.ndarray
-        a2F values for |g|^2 chunk
-    """
-    # mapping of BZ: for every q get k+q -> k 
-    ikqpts = List()
-    [ikqpts.append(get_kq2k(kpts, kpts_chunk, qpt)) for qpt in qpts]
-    # take only nonzero values of gkq_chunk
-    where_nonzero = np.nonzero(gkq_chunk)
-    a2f_vals = calculate_chunk(gkq_chunk, eps_eig, ph_eig,
-                               where_nonzero, ikqpts, 
-                               egrid.grid, e1grid.grid, phgrid.grid,
-                               egrid.smear, e1grid.smear, phgrid.smear,
-                               egrid.npoints, e1grid.npoints, phgrid.npoints)
-    return a2f_vals
+#     Returns
+#     -------
+#     np.ndarray
+#         a2F values for |g|^2 chunk
+#     """
+#     # mapping of BZ: for every q get k+q -> k 
+#     ikqpts = List()
+#     [ikqpts.append(get_kq2k(kpts, kpts_chunk, qpt)) for qpt in qpts]
+#     # take only nonzero values of gkq_chunk
+#     where_nonzero = np.nonzero(gkq_chunk)
+#     a2f_vals = calculate_chunk(gkq_chunk, eps_eig, ph_eig,
+#                                where_nonzero, ikqpts, 
+#                                egrid.grid, e1grid.grid, phgrid.grid,
+#                                egrid.smear, e1grid.smear, phgrid.smear,
+#                                egrid.npoints, e1grid.npoints, phgrid.npoints)
+#     return a2f_vals

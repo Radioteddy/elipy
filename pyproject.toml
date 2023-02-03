@@ -1,9 +1,10 @@
 [tool.poetry]
 name = "elipy"
-version = "0.1.0"
+version = "0.1.6"
 description = "Post-processing tool for Abinit >= 9.8.1 aiming to calculate energy-resolved Eliashberg function"
 authors = ["Fedor Akhmetov <f.akhmetov@utwente.nl>"]
 readme = "README.md"
+license = "MIT"
 packages = [{include = "core"}]
 
 [tool.poetry.dependencies]

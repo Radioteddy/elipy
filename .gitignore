@@ -1,2 +1,5 @@
 __pycache__/
-requirements.txt
+poetry.lock
+pyproject.toml
+dist/
+./__init__.py

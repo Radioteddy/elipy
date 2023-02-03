@@ -2,12 +2,14 @@ from pathlib import Path
 from time import time
 
 import numpy as np
+from numba.typed import List
 
 from .files_handling import *
 from .constants import *
 from .messages import *
 from .grid import Grid
-from .a2f_calculator import get_a2f_chunk
+from .a2f_calculator import calculate_chunk #, get_a2f_chunk 
+from .kpt_utils import get_kq2k
 
 from .mpi import MPI, comm, size, rank, master_only, mpi_watch, master
 
@@ -108,13 +110,11 @@ class Elisahberg:
         # g_kq has shape `[nq,nk,...]`, we swap 0th and 1st dimensions for convenience
         self.gkq_vals = np.swapaxes(gkq_vals, 0, 1)
         # and set up variables for all dimensions
-
+       
     @mpi_watch
     def broadcast_dims(self):
         """broadcast_dims broadcasts dimensions of all arrays to cpus
-        """        
-        # Broadcast all dimensions from master to other cpu-s
-        
+        """               
         if master:
             dim_arr = np.array(self.gkq_vals.shape[:-1], dtype=int)
         else:
@@ -129,9 +129,11 @@ class Elisahberg:
         if not master:
             self.g_kpts = np.empty((self.nkpt, 3), dtype=np.float64)
             self.g_qpts = np.empty((self.nqpt, 3), dtype=np.float64)
+            self.ewin_ikpts = None
+            self.e1win_ikpts = None
         comm.Bcast([self.g_kpts, MPI.DOUBLE])
         comm.Bcast([self.g_qpts, MPI.DOUBLE])
-                    
+        
     @mpi_watch
     def broadcast_eigvals(self):
         """broadcast_eigvals broadcasts electron and phonon eigenvalues to cpus
@@ -201,10 +203,22 @@ class Elisahberg:
         else:
             kpts_chunk = self.g_kpts[self.__displ[rank]:,:]
 
+        # mapping of BZ: for every q get k+q -> k 
+        ikqpts = List()
+        [ikqpts.append(get_kq2k(self.g_kpts, kpts_chunk, qpt)) for qpt in self.g_qpts]
+        # take only nonzero values of gkq_chunk
+        where_nonzero = np.nonzero(self.gkq_chunk)
+        a2f_chunk = calculate_chunk(self.gkq_chunk, self.e_eigvals, self.ph_eigvals,
+                                where_nonzero, ikqpts,
+                                self.egrid.grid, self.e1grid.grid, self.phgrid.grid,
+                                self.egrid.smear, self.e1grid.smear, self.phgrid.smear,
+                                self.egrid.npoints, self.e1grid.npoints, self.phgrid.npoints)
+        
         # calculate a2f values for given chunck        
-        a2f_chunk = get_a2f_chunk(self.gkq_chunk, self.g_kpts, kpts_chunk, self.g_qpts, 
-                                  self.e_eigvals, self.ph_eigvals,
-                                  self.egrid, self.e1grid, self.phgrid)
+        # a2f_chunk = get_a2f_chunk(self.gkq_chunk, self.g_kpts, kpts_chunk, self.g_qpts, 
+        #                           self.e_eigvals, self.ph_eigvals,
+        #                           self.egrid, self.e1grid, self.phgrid)
+        
         comm.Reduce([a2f_chunk, MPI.DOUBLE], [self.a2f_vals, MPI.DOUBLE], op=MPI.SUM, root=0)       
             
     @master_only
@@ -225,11 +239,10 @@ class Elisahberg:
         # we don't need to log everything 
             start = time()           
         print_header()
-        print_mpi_info(self.nkpt//size)
         self.read_data()
         print_read_status(self.eig_file, self.pheig_file, self.gkq_file)
-        
         self.broadcast_dims()
+        print_mpi_info(self.nkpt//size)
         self.broadcast_kqpoints()
         self.broadcast_eigvals()
         self.scatter_gkq_vals()
