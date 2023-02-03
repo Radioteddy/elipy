@@ -5,7 +5,7 @@ description = "Post-processing tool for Abinit >= 9.8.1 aiming to calculate ener
 authors = ["Fedor Akhmetov <f.akhmetov@utwente.nl>"]
 readme = "README.md"
 license = "MIT"
-packages = [{include = "core"}]
+packages = [{include = "elipy"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"

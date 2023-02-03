@@ -30,11 +30,8 @@ The actual versions of required packages are stored in pyproject.toml file.
 
 ### Installation
 
-Installation based on [Poetry](https://python-poetry.org) package and dependency manager.
 ```
-git clone https://github.com/Radioteddy/elipy.git
-cd elipy
-poetry install
+pip install elipy
 ```
 
 ### Executing program
