@@ -12,9 +12,15 @@ $$
 
 The above-written definition does not include electron density of states at Fermi level. One needs to divide $\alpha^2 F$ over $N_F$ to get physically meaningful results. 
 
-The current implemetation supports Gaussian representation of delta-functions. Project uses mpi4py for many-core parallelization and Numba for acceleration of procedures dealing with iteration over numpy arrays.
+Project uses mpi4py for many-core parallelization and Numba for acceleration of procedures dealing with iteration over numpy arrays.
 
 Elipy is insipired by [ElectronPhononCoupling](https://github.com/GkAntonius/ElectronPhononCoupling) and [Abipy](https://github.com/abinit/abipy) projects, and uses some of their utility functions. Apologies for code copy-pasting, it allows to keep dependency list as short as possible.  
+
+### Limitations
+
+* only Gaussian smearing summation for delta functions
+* no account for spin of electron states
+* code requires electron and phonon eigenstates in full Brilluoin zone 
 
 ## Getting Started
 
@@ -33,7 +39,13 @@ The actual versions of required packages are stored in pyproject.toml file.
 ```
 pip install elipy
 ```
+ALternatively, one can build code with [Poetry](https://python-poetry.org) package manager:
 
+```
+git clone https://github.com/Radioteddy/elipy.git
+cd elipy
+poetry install
+```
 ### Executing program
 
 * Use mpirun, mpiexec, srun,... for program execution
