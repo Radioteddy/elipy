@@ -1,5 +1,6 @@
 from elipy import Elisahberg
 
+# only first file used from now (v.0.1.7)
 test_files = [
     'outdata/GSTORE_small.nc',
     'outdata/EIG_small.nc',
@@ -11,8 +12,7 @@ test_files = [
 # if we do not set up parameters for e', e values will be used by default
 # parameters of phonon grid (phonon window will be taken from phonon eigenvalues analysis)
 
-test = Elisahberg(test_files[0], test_files[1], test_files[2],
-                  ewindow=[-0.4, 0.4], esmear=0.01, epoints=500, eunits='Ha',  
+test = Elisahberg(test_files[0], ewindow=[-0.4, 0.4], esmear=0.01, epoints=500, eunits='Ha',  
                   phsmear=2., phpoints=400, phunits='meV') #
 # call a2f calculator
 test.compute_a2f()

@@ -108,17 +108,13 @@ def get_phonon_eigenvalues(eigenval_path: str|Path) -> np.ndarray:
         raise ValueError('incorrect phonon modes file!')
     return eigenvalues
 
-def get_gkq_values(gkq_path: str, restore_eeigenvals: bool = False, restore_pheigenvals: bool = False) -> dict:
+def get_gkq_values(gkq_path: str) -> dict:
     """get_gkq_values reads netCDF4 file with eph matrix elements
 
     Parameters
     ----------
     gkq_path : str
         path to |g|^2 file 
-    restore_eeigenvals: bool, optional
-        if True, restores electron eigenvalues in full BZ from IBZ ones
-    restore_pheigenvals: bool, optional
-        if True, restores phonon eigenvalues in full BZ from IBZ ones        
 
     Returns
     -------
@@ -129,18 +125,16 @@ def get_gkq_values(gkq_path: str, restore_eeigenvals: bool = False, restore_phei
     read_data = {}
     if 'GSTORE' in gkq_path.name:
         file = nc.Dataset(gkq_path, 'r')
-        if restore_eeigenvals:
-            # read electron eigenenergies in IBZ and restore values for full BZ
-            k_ibz2bz = np.ma.getdata(file.variables['gstore_kbz2ibz'][:])
-            e_eigs_ibz = np.ma.getdata(file.variables['eigenvalues'][:])[0,:,:]
-            e_eigs_bz = get_eigvals_bz(e_eigs_ibz, k_ibz2bz)
-            read_data['e_eigs'] = e_eigs_bz
-        if restore_pheigenvals:
-            # read phonon frequencies in IBZ and restore values for full BZ
-            q_ibz2bz = np.ma.getdata(file.variables['gstore_qbz2ibz'][:])
-            ph_eigs_ibz = np.ma.getdata(file.variables['phfreqs_ibz'][:])
-            ph_eigs_bz = get_eigvals_bz(ph_eigs_ibz, q_ibz2bz)
-            read_data['ph_eigs'] = ph_eigs_bz
+        # read electron eigenenergies in IBZ and restore values for full BZ
+        k_ibz2bz = np.ma.getdata(file.variables['gstore_kbz2ibz'][:])
+        e_eigs_ibz = np.ma.getdata(file.variables['eigenvalues'][:])[0,:,:]
+        e_eigs_bz = get_eigvals_bz(e_eigs_ibz, k_ibz2bz)
+        read_data['e_eigs'] = e_eigs_bz
+        # read phonon frequencies in IBZ and restore values for full BZ
+        q_ibz2bz = np.ma.getdata(file.variables['gstore_qbz2ibz'][:])
+        ph_eigs_ibz = np.ma.getdata(file.variables['phfreqs_ibz'][:])
+        ph_eigs_bz = get_eigvals_bz(ph_eigs_ibz, q_ibz2bz)
+        read_data['ph_eigs'] = ph_eigs_bz
         if len(file.groups) == 1:
             gkq = file.groups['gqk_spin1'].variables['gvals']
             gkq_vals = np.ma.getdata(gkq[:])

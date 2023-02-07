@@ -20,7 +20,6 @@ Elipy is insipired by [ElectronPhononCoupling](https://github.com/GkAntonius/Ele
 
 * only Gaussian smearing summation for delta functions
 * no account for spin of electron states
-* code requires electron and phonon eigenstates in full Brilluoin zone 
 
 ## Getting Started
 
@@ -59,6 +58,8 @@ mpiexec -n X python filename.py > out 2> err
 
 ## Version History
 
+* 0.1.7
+    * electron and phonon eigenvalues are taken from GSTORE
 * 0.1.6
     * minor bugfixes and improvements
 * 0.1.5

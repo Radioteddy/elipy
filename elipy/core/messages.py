@@ -17,17 +17,15 @@ Started at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 @master_only
 def print_mpi_info(num_kpoints: int) -> None:
     mpi_message = f"""
-    Number of cpu-s used is: {size}
-    K-point parallelization: avg. {num_kpoints} k-points per cpu
+Number of cpu-s used is: {size}
+K-point parallelization: avg. {num_kpoints} k-points per cpu
     """
     print(mpi_message, flush=True)
 
 @master_only
-def print_read_status(e_file: Path, w_file: Path, g_file: Path) -> None:
+def print_read_status(g_file: Path) -> None:
     read_status_message = f"""
-Electron energy values: {str(e_file)}
-Phonon frequency values: {str(w_file)}
-Electron-phonon matrix elements: {str(g_file)}
+Electron-phonon matrix elements, electron and phonon eigenvalues:\n{str(g_file)}
     """
     print(read_status_message, flush=True)
    
@@ -52,6 +50,9 @@ ph_grid:
     ph_window    {phgrid.g_min:.3e}  {phgrid.g_max:.3e}
     ph_smearing  {phgrid.smear:.3e} 
     ph_npoints    {phgrid.npoints}
+-------------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------------
     """
     print(variables_message, flush=True)
 
