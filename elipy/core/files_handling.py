@@ -4,6 +4,7 @@ import numpy as np
 import netCDF4 as nc
 
 from .grid import Grid
+from .kpt_utils import get_eigvals_bz
 
 def check_in_path(path: str|Path, file_type: str = None) -> Path:
     """check_in_path converts input file path to pathlib.Path if necessary and makes it absolute
@@ -107,13 +108,17 @@ def get_phonon_eigenvalues(eigenval_path: str|Path) -> np.ndarray:
         raise ValueError('incorrect phonon modes file!')
     return eigenvalues
 
-def get_gkq_values(gkq_path: str) -> tuple([np.ndarray, np.ndarray, np.ndarray, np.float_]):
+def get_gkq_values(gkq_path: str, restore_eeigenvals: bool = False, restore_pheigenvals: bool = False) -> dict:
     """get_gkq_values reads netCDF4 file with eph matrix elements
 
     Parameters
     ----------
     gkq_path : str
-        path to |g|^2 file
+        path to |g|^2 file 
+    restore_eeigenvals: bool, optional
+        if True, restores electron eigenvalues in full BZ from IBZ ones
+    restore_pheigenvals: bool, optional
+        if True, restores phonon eigenvalues in full BZ from IBZ ones        
 
     Returns
     -------
@@ -121,8 +126,21 @@ def get_gkq_values(gkq_path: str) -> tuple([np.ndarray, np.ndarray, np.ndarray, 
         arrays with |g|^2 values, k- and q-points, Fermi energy
     """    
     gkq_path = check_in_path(gkq_path, 'EPH matrix elements')
+    read_data = {}
     if 'GSTORE' in gkq_path.name:
         file = nc.Dataset(gkq_path, 'r')
+        if restore_eeigenvals:
+            # read electron eigenenergies in IBZ and restore values for full BZ
+            k_ibz2bz = np.ma.getdata(file.variables['gstore_kbz2ibz'][:])
+            e_eigs_ibz = np.ma.getdata(file.variables['eigenvalues'][:])[0,:,:]
+            e_eigs_bz = get_eigvals_bz(e_eigs_ibz, k_ibz2bz)
+            read_data['e_eigs'] = e_eigs_bz
+        if restore_pheigenvals:
+            # read phonon frequencies in IBZ and restore values for full BZ
+            q_ibz2bz = np.ma.getdata(file.variables['gstore_qbz2ibz'][:])
+            ph_eigs_ibz = np.ma.getdata(file.variables['phfreqs_ibz'][:])
+            ph_eigs_bz = get_eigvals_bz(ph_eigs_ibz, q_ibz2bz)
+            read_data['ph_eigs'] = ph_eigs_bz
         if len(file.groups) == 1:
             gkq = file.groups['gqk_spin1'].variables['gvals']
             gkq_vals = np.ma.getdata(gkq[:])
@@ -138,12 +156,16 @@ def get_gkq_values(gkq_path: str) -> tuple([np.ndarray, np.ndarray, np.ndarray, 
             qpoints = np.ma.getdata(file.variables['gstore_qbz'][:])
             fermi_energy = np.float64(np.ma.getdata(file.variables['fermi_energy'][:]))
             assert (gkq_vals.shape[0], gkq_vals.shape[1]) == (qpoints.shape[0], kpoints.shape[0]), "only k(bz) q(bz) gkq file is currently supported"
+            read_data['kpts'] = kpoints
+            read_data['qpts'] = qpoints
+            read_data['gkq'] = gkq_vals
+            read_data['efermi'] = fermi_energy
         else:
             raise ValueError('Spin-dependent gkq is not supported yet')
         file.close()
     else:
         raise ValueError('incorrect netCDF file!')
-    return gkq_vals, kpoints, qpoints, fermi_energy
+    return read_data
 
 def store_a2f_values(out_path: str|Path, efermi: np.float_,
                      egrid: Grid, e1grid: Grid, phgrid: Grid, a2f_vals: np.ndarray) -> None:

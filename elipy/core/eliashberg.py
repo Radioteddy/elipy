@@ -16,7 +16,7 @@ from .mpi import MPI, comm, size, rank, master_only, mpi_watch, master
 class Elisahberg:
     """ contains methods for Eliashberg function a2F(e,e',w) calculation
     """
-    def __init__(self, gkq_file: str|Path, eig_file: str|Path, pheig_file: str|Path,
+    def __init__(self, gkq_file: str|Path, eig_file: str|Path = None, pheig_file: str|Path = None,
                  ewindow: list = [default_emin, default_emax], esmear: float = default_esmear, 
                  epoints: int = default_epoints, eunits: str = 'Ha',
                  e1window: list = None, e1smear: float = None,
@@ -30,10 +30,12 @@ class Elisahberg:
         ----------
         gkq_file : str | Path
             Path to netCDF4 file with |g|^2 eph matrix elements
-        eig_file : str | Path
-            Path to netCDF4 file with electron eigenvalues
-        pheig_file : str | Path
+        eig_file : str | Path, optional
+            Path to netCDF4 file with electron eigenvalues. 
+            If not provided, eigenvalues will be taken from gkq_file
+        pheig_file : str | Path, optional
             Path to ascii file with phonon eigenvalues
+            If not provided, eigenvalues will be taken from gkq_file
         ewindow : list, optional
             window for electron energies,
             by default [default_emin, default_emax]
@@ -96,15 +98,27 @@ class Elisahberg:
     @master_only        
     def read_data(self):
         """read_data reads input files and check their consistency
-        """        
-        self.e_eigvals, e_kpts = get_electron_eigenvalues_kpoints(self.eig_file)
-        self.ph_eigvals = get_phonon_eigenvalues(self.pheig_file)
-        gkq_vals, self.g_kpts, self.g_qpts, self.efermi = get_gkq_values(self.gkq_file)
-                # check data consistency
-        assert np.array_equal(e_kpts, self.g_kpts), "GS and EPH k-point grids are inconsistent"
-        assert self.e_eigvals.shape[1] == gkq_vals.shape[3], 'numbers of bands in GS and EPH are inconsistent'
-        # TODO: 1) now code checks only sizes of q-point grid for phonons and eph but not grids themself
-        assert len(self.ph_eigvals) == len(self.g_qpts), "PHONON and EPH q-grids are inconsistent"
+        """
+        # check if files with eigenvalues are provided in input
+        restore_eeigs = False if self.eig_file else True
+        restore_pheigs = False if self.pheig_file else True
+        # read gkq file
+        gkq_data = get_gkq_values(self.gkq_file, restore_eeigs, restore_pheigs)
+        gkq_vals = gkq_data['gkq']
+        self.g_kpts, self.g_qpts, self.efermi = gkq_data['kpts'], gkq_data['qpts'], gkq_data['efermi']
+        # read eigenvalues files if they are provided otherwise get restored from gkq file
+        if restore_eeigs:
+            self.e_eigvals = gkq_data['e_eigs']
+        else:
+            self.e_eigvals, e_kpts = get_electron_eigenvalues_kpoints(self.eig_file)
+            assert np.array_equal(e_kpts, self.g_kpts), "GS and EPH k-point grids are inconsistent"
+            assert self.e_eigvals.shape[1] == gkq_vals.shape[3], 'numbers of bands in GS and EPH are inconsistent'
+        if restore_pheigs:
+            self.ph_eigvals = gkq_data['ph_eigs']
+        else:
+            self.ph_eigvals = get_phonon_eigenvalues(self.pheig_file)
+            # TODO: 1) now code checks only sizes of q-point grid for phonons and eph but not grids themself
+            assert len(self.ph_eigvals) == len(self.g_qpts), "PHONON and EPH q-grids are inconsistent"
         # if everything is OK, make electron eigenvalues Fermi energy centered
         self.e_eigvals = self.e_eigvals - self.efermi
         # g_kq has shape `[nq,nk,...]`, we swap 0th and 1st dimensions for convenience

@@ -6,6 +6,25 @@ import numpy as np
 from numba import njit
 
 @njit()
+def allclose(x: np.ndarray, y: np.ndarray, atol: float=1e-8) -> bool:
+    """allclose is numba version of numpy.allcose.
+    Returns True if two arrays are element-wise equal within a tolerance.
+
+    Parameters
+    ----------
+    x,y : np.ndarray(3,)
+        input vectors to compare
+    atol : float, optional
+        tolerance, by default 1e-8
+
+    Returns
+    -------
+    bool
+        True if vector has integer coordinates, False otherwise
+    """    
+    return np.all(np.abs(y-x)<=(atol+1e-5*np.abs(x)))
+
+@njit()
 def is_integer(x: np.ndarray, atol: float=1e-8) -> bool:
     """is_integer check if vector has integer coordinates within tolerance atol
 
@@ -23,7 +42,7 @@ def is_integer(x: np.ndarray, atol: float=1e-8) -> bool:
     """
     int_x = np.empty_like(x)
     np.round(x, 0, int_x)
-    return np.all(np.abs(int_x-x)<=(atol+1e-5*np.abs(x)))
+    return allclose(x, int_x)
 
 @njit()
 def issamek(k1: np.ndarray, k2: np.ndarray, atol: float=1e-8) -> bool:
@@ -81,3 +100,21 @@ def get_kq2k(kpts: np.ndarray, kpts_sub: np.ndarray, qpt: np.ndarray, atol_kdiff
                     k2kqg[ik] = (ikq, g0)
                     break
     return k2kqg
+
+def get_eigvals_bz(eigvals_ibz: np.ndarray, bz_ibz_mapping: np.ndarray) -> np.ndarray:
+    """get_eigvals_bz restores eigenvalues in full Brillouin zone from irreducible ones
+
+    Parameters
+    ----------
+    eigvals_ibz : np.ndarray
+        eigenvalues in IBZ
+    bz_ibz_mapping : np.ndarray
+        mapping of k-points from BZ to IBZ
+
+    Returns
+    -------
+    np.ndarray
+        eigenvalues in full BZ
+    """    
+    eigvals_bz = np.array([eigvals_ibz[i-1] for i in bz_ibz_mapping[:,0]])
+    return eigvals_bz
