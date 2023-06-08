@@ -2,9 +2,9 @@ from elipy import Elisahberg
 
 # only first file used from now (v.0.1.7)
 test_files = [
-    'outdata/GSTORE_small.nc',
-    'outdata/EIG_small.nc',
-    'outdata/anaddb_PHFRQ_small',
+    'indata/GSTORE_small.nc',
+    'indata/EIG_small.nc',
+    'indata/anaddb_PHFRQ_small',
 ]
 
 # initialize Elaishberg class containing methods for a2f calculation
