@@ -6,8 +6,8 @@ from .mpi import master_only, size
 
 @master_only
 def print_header():
-    __version__ = importlib.metadata.version("elipy")
-    # __version__ = "0.1.5"
+    # __version__ = importlib.metadata.version("elipy")
+    __version__ = "0.1.8"
     header_message = f"""
 elipy v{__version__} -- post-processing tool for ABINIT EPH package
 Started at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
@@ -30,30 +30,52 @@ Electron-phonon matrix elements, electron and phonon eigenvalues:\n{str(g_file)}
     print(read_status_message, flush=True)
    
 @master_only   
-def print_variables(egrid: Grid, e1grid: Grid, phgrid: Grid) -> None:
-    variables_message = f"""
--------------------------------------------------------------------------------------
-                    Variables that govern the present computation
--------------------------------------------------------------------------------------
+def print_variables(egrid: Grid, phgrid: Grid, e1grid: Grid = None) -> None:
+    if e1grid:
+        variables_message = f"""
+    -------------------------------------------------------------------------------------
+                        Variables that govern the present computation
+    -------------------------------------------------------------------------------------
 
-all values in atomic units
+    all values in atomic units
 
-e_grid:
-    e_window    {egrid.g_min:.3e}  {egrid.g_max:.3e}
-    e_smearing  {egrid.smear:.3e} 
-    e_npoints    {egrid.npoints}
-e1_grid:
-    e1_window    {e1grid.g_min:.3e}  {e1grid.g_max:.3e}
-    e1_smearing  {e1grid.smear:.3e} 
-    e1_npoints    {e1grid.npoints}
-ph_grid:
-    ph_window    {phgrid.g_min:.3e}  {phgrid.g_max:.3e}
-    ph_smearing  {phgrid.smear:.3e} 
-    ph_npoints    {phgrid.npoints}
--------------------------------------------------------------------------------------
+    e_grid:
+        e_window    {egrid.g_min:.3e}  {egrid.g_max:.3e}
+        e_smearing  {egrid.smear:.3e} 
+        e_npoints    {egrid.npoints}
+    e1_grid:
+        e1_window    {e1grid.g_min:.3e}  {e1grid.g_max:.3e}
+        e1_smearing  {e1grid.smear:.3e} 
+        e1_npoints    {e1grid.npoints}
+    ph_grid:
+        ph_window    {phgrid.g_min:.3e}  {phgrid.g_max:.3e}
+        ph_smearing  {phgrid.smear:.3e} 
+        ph_npoints    {phgrid.npoints}
+    -------------------------------------------------------------------------------------
 
--------------------------------------------------------------------------------------
-    """
+    -------------------------------------------------------------------------------------
+        """
+    else:
+        variables_message = f"""
+    -------------------------------------------------------------------------------------
+                        Variables that govern the present computation
+    -------------------------------------------------------------------------------------
+
+    all values in atomic units
+
+    e_grid:
+        e_window    {egrid.g_min:.3e}  {egrid.g_max:.3e}
+        e_smearing  {egrid.smear:.3e} 
+        e_npoints    {egrid.npoints}
+    ph_grid:
+        ph_window    {phgrid.g_min:.3e}  {phgrid.g_max:.3e}
+        ph_smearing  {phgrid.smear:.3e} 
+        ph_npoints    {phgrid.npoints}
+    -------------------------------------------------------------------------------------
+
+    -------------------------------------------------------------------------------------
+        """
+        
     print(variables_message, flush=True)
 
 @master_only

@@ -193,7 +193,40 @@ def store_a2f_values(out_path: str|Path, efermi: np.float_,
     e1var[:] = e1grid.grid
     phvar = ncout.createVariable('frequency','float64',('number_of_frequencies'))
     phvar[:] = phgrid.grid
-    a2fvar = ncout.createVariable('a2f','float64',('number_of_epoints','number_of_e1points','number_of_frequencies'))
-    a2fvar.setncattr('units','mm')
+    a2fvar = ncout.createVariable('a2f','float64',('number_of_epoints',
+                                                   'number_of_e1points','number_of_frequencies'))
+    a2fvar[:] = a2f_vals
+    ncout.close()      
+
+def store_a2f_reduced_values(out_path: str|Path, efermi: np.float_,
+                     egrid: Grid, phgrid: Grid, a2f_vals: np.ndarray) -> None:
+    """store_a2f_values saves output data no netCDF4 file
+    for the special case e' == e
+
+    Parameters
+    ----------
+    out_path : str | Path
+        path to output file
+    efermi : np.float_
+        Fermi energy of a system
+    egrid : Grid
+        electron energy grid e
+    phgrid : Grid
+        phonon frequency grid w
+    a2f_vals : np.ndarray
+        a2F(e,w) values
+    """
+    out_path = check_out_path(out_path)
+    ncout = nc.Dataset(out_path,'w')
+    efvar = ncout.createVariable('Fermi_energy', 'float64') 
+    efvar[0] = efermi
+    ncout.createDimension('number_of_epoints', egrid.npoints)
+    ncout.createDimension('number_of_frequencies', phgrid.npoints)
+    evar = ncout.createVariable('energy','float64',('number_of_epoints'))
+    evar[:] = egrid.grid
+    phvar = ncout.createVariable('frequency','float64',('number_of_frequencies'))
+    phvar[:] = phgrid.grid
+    a2fvar = ncout.createVariable('a2f','float64',
+                                  ('number_of_epoints','number_of_frequencies'))
     a2fvar[:] = a2f_vals
     ncout.close()      

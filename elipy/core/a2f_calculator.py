@@ -75,6 +75,48 @@ def get_eew_term(eps_k: np.float_, eps_kq: np.float_, w_q: np.float_,
     return a2f_eew
 
 @njit()
+def get_ew_term(eps_k: np.float_, eps_kq: np.float_, w_q: np.float_, 
+                   sigma_eps: np.float_, sigma_w: np.float_, 
+                    eps_arr: np.ndarray, w_arr: np.ndarray,
+                    Neps: int, Nw: int, a2f_ew: np.ndarray) -> np.ndarray:
+    """get_ew_term calculate gaussian weights for all eigenvalues
+
+    Parameters
+    ----------
+    eps_k : np.float_
+        electron eigenvalue at k-point
+    eps_kq : np.float_
+        electron eigenvalue at k+q-point
+    w_q : np.float_
+        phonon eigenvalue at q-point
+    sigma_eps : np.float_
+        electron smearing for e
+    sigma_w : np.float_
+        phonon smearing
+    eps_arr : np.ndarray(Neps)
+        energy grid e
+    w_arr : np.ndarray(Nw)
+        frequency grid w
+    Neps : int
+        number of points in e grid
+    Nw : int
+        number of points in w grid
+    a2f_ew : np.ndarray(Neps, Nw)
+        array for gaussian weights, being rewritten every time
+
+    Returns
+    -------
+    np.ndarray
+        gaussian weights
+    """
+    # we don't require Nw, may change later
+    for i in range(Neps):
+        a2f_ew[i,:] = ( gaussian(w_arr[:], w_q, sigma_w) 
+                        * gaussian(eps_arr[i], eps_kq, sigma_eps)
+                        * gaussian(eps_arr[i], eps_k, sigma_eps) )
+    return a2f_ew
+
+@njit()
 def calculate_chunk(gkq_chunk: np.ndarray, eps_eig: np.ndarray, ph_eig: np.ndarray, 
                     nonzero_dims: tuple, ikqpts: list,
                     egrid: np.ndarray, e1grid: np.ndarray, phgrid: np.ndarray,
@@ -131,7 +173,7 @@ def calculate_chunk(gkq_chunk: np.ndarray, eps_eig: np.ndarray, ph_eig: np.ndarr
         if (eps_k < ewindow_bounds[0])|(eps_k > ewindow_bounds[1]):
             continue # no need to account these values 
         eps_kq = eps_eig[ikq,ibp]
-        if (eps_k < e1window_bounds[0])|(eps_k > e1window_bounds[1]):
+        if (eps_kq < e1window_bounds[0])|(eps_kq > e1window_bounds[1]):
             continue # no need to account these values 
         g_kq = gkq_chunk[ik,iq,inu,ib,ibp]
         get_eew_term(eps_k, eps_kq, w_q,
@@ -142,6 +184,69 @@ def calculate_chunk(gkq_chunk: np.ndarray, eps_eig: np.ndarray, ph_eig: np.ndarr
         a2f_vals += a2f_temp * g_kq
     return a2f_vals
 
+@njit()
+def calculate_reduced_chunk(
+    gkq_chunk: np.ndarray, eps_eig: np.ndarray, ph_eig: np.ndarray, 
+    nonzero_dims: tuple, ikqpts: list,
+    egrid: np.ndarray, phgrid: np.ndarray,
+    esmear: np.float_, phsmear: np.float_,
+    epoints: int, phpoints: int
+) -> np.ndarray:
+    """calculate_chunk calculate a2F values for given |g|^2 chunk
+    for the special case e' == e
+
+    Parameters
+    ----------
+    gkq_chunk : np.ndarray
+        chunk of |g|^2 values
+    eps_eig : np.ndarray
+        electron eigenvalues
+    ph_eig : np.ndarray
+        phonon eigenvalues
+    nonzero_dims : tuple
+        indicies where |g|^2 != 0
+    ikqpts : list
+        maps of k->k+q points for every q
+    egrid : np.ndarray
+        energy grid e
+    phgrid : np.ndarray
+        frequency grid w
+    esmear : np.float_
+        electron smearing for e
+    phsmear : np.float_
+        phonon smearing
+    epoints : int
+        number of points in e grid
+    phpoints : int
+        number of points in w grid
+    Returns
+    -------
+    np.ndarray
+        a2F values for |g|^2 chunk
+    """
+    # countainers for a2f values
+    a2f_vals = np.zeros((epoints, phpoints))
+    a2f_temp = np.empty((epoints, phpoints))
+    ewindow_bounds = [np.amin(egrid), np.amax(egrid)]
+    nk, nq, nnu, nb, nbp = nonzero_dims
+    for i in range(len(nk)):
+        ik, iq, inu, ib, ibp = nk[i], nq[i], nnu[i], nb[i], nbp[i]
+        ikq = ikqpts[iq][ik][0]
+        w_q = ph_eig[iq, inu]
+        eps_k = eps_eig[ik,ib]
+        eps_kq = eps_eig[ikq,ibp]
+        if (eps_k < ewindow_bounds[0])|(eps_k > ewindow_bounds[1]):
+            continue # no need to account these values 
+        if (eps_kq < ewindow_bounds[0])|(eps_kq > ewindow_bounds[1]):
+            continue # no need to account these values 
+        g_kq = gkq_chunk[ik,iq,inu,ib,ibp]
+        get_ew_term(eps_k, eps_kq, w_q,
+                esmear, phsmear,
+                egrid, phgrid,
+                epoints, phpoints,
+                a2f_temp)
+        a2f_vals += a2f_temp * g_kq
+    return a2f_vals
     
 # def get_a2f_chunk(gkq_chunk: np.ndarray, kpts: np.ndarray, kpts_chunk: np.ndarray, qpts: np.ndarray,
 #                   eps_eig: np.ndarray, ph_eig: np.ndarray, 
