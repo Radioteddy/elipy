@@ -149,23 +149,6 @@ class Eliashberg:
                                self.__phpoints, 'Ha')
 
 
-    # for some reason, scattering of n-dimensional array doesn't work
-    # @mpi_watch
-    # def scatter_gkq_vals(self):
-    #     # scatter gkq values to cpu-s over nkpt dimension
-    #     # TODO: think about scattering over nqpt as well
-    #     if not master:
-    #         self.gkq_vals = None
-    #     # find dimension of chunks per cpu and number dimension displacemen
-    #     ave, res = divmod(self.nkpt, size)
-    #     counts = np.array([ave + 1 if p < res else ave for p in range(size)], dtype=int)
-    #     # self because will call it later
-    #     self.__displ = np.array([sum(counts[:p]) for p in range(size)], dtype=int)
-    #     # allocate space for chunk
-    #     self.gkq_chunk = np.empty((counts[rank], self.nqpt, self.nbranch, self.nband, self.nband))
-    #     rest_dims = self.nqpt*self.nbranch*self.nband*self.nband
-    #     comm.Scatterv([self.gkq_vals, counts*rest_dims, self.__displ*rest_dims, MPI.DOUBLE], self.gkq_chunk, root=0)
-
     # here array is flatten to 1d and back to nd, but it may brake everything at some point
     @mpi_watch
     def scatter_gkq_vals(self):
@@ -188,6 +171,30 @@ class Eliashberg:
                       self.gkq_chunk, root=0)    
         self.gkq_chunk = self.gkq_chunk.reshape((counts[rank], self.nqpt, self.nbranch,
                                                  self.nband, self.nband))
+
+    # TODO: think how to send LARGE amounts of data
+    # @mpi_watch
+    # def scatter_gkq_vals(self):
+    #     """scatter_gkq_vals distributes |g|^2 values over cpus
+    #     """
+    #     # find dimension of chunks per cpu and number dimension displacemen
+    #     ave, res = divmod(self.nkpt, size)
+    #     counts = np.array([ave + 1 if p < res else ave for p in range(size)], dtype=int)
+    #     self.__displ = np.array([sum(counts[:p]) for p in range(size)], dtype=int)
+    #     rest_dims = self.nqpt*self.nbranch*self.nband*self.nband
+    #     if master:
+    #         gkq_flatten = self.gkq_vals.flatten() 
+    #         self.gkq_chunk = gkq_flatten[:self.__displ[1]*rest_dims]
+    #         for r in range(1, size-1):
+    #             comm.Send(gkq_flatten[self.__displ[r]*rest_dims:self.__displ[r+1]*rest_dims],
+    #                       dest=r, tag=10+r)
+    #         comm.Send(gkq_flatten[self.__displ[size-1]*rest_dims:],
+    #                   dest=r, tag=10+(size-1))
+    #     else:
+    #         self.gkq_chunk = np.empty(counts[rank]*rest_dims, dtype=np.float64)
+    #         comm.Recv(self.gkq_chunk, source=0, tag=10+rank)
+    #     self.gkq_chunk = self.gkq_chunk.reshape((counts[rank], self.nqpt, self.nbranch,
+    #                                             self.nband, self.nband))
         
     @mpi_watch
     def sum_chunks(self):
