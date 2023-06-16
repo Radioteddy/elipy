@@ -58,6 +58,8 @@ mpiexec -n X python filename.py > out 2> err
 
 ## Version History
 
+* 0.1.8
+    * collective communication for matrix elements replaced by p2p one
 * 0.1.7
     * electron and phonon eigenvalues are taken from GSTORE
 * 0.1.6

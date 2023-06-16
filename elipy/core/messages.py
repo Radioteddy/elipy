@@ -6,8 +6,8 @@ from .mpi import master_only, size
 
 @master_only
 def print_header():
-    # __version__ = importlib.metadata.version("elipy")
-    __version__ = "0.1.8"
+    __version__ = importlib.metadata.version("elipy")
+    # __version__ = "0.1.8"
     header_message = f"""
 elipy v{__version__} -- post-processing tool for ABINIT EPH package
 Started at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
